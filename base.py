@@ -3,8 +3,13 @@ import multiprocessing
 from tts import say
 from speech_recog import microphone_transcribe
 
+import util_extensions
+
 # constants
 LLAMA_COMMAND = ["ollama.exe","run","llama3"]
+
+HISTORY_PROMPT_PREFIX = "AI]"
+UTIL_EXTENSION_PREFIX = "UTIL]"
 
 # global vars
 running = True
@@ -21,6 +26,19 @@ MYRA_PROMPT = load_prompt("myra.txt")
 
 history = []
 
+
+def run_extension(command,*a):
+    # This should never be run with privilege. Think of the children
+    if command not in util_extensions.__dir__():
+        print("Unsupported command")
+        return
+    args = ",".join(a)
+    print(args)
+    command_string = f"util_extensions.{command}({args})"
+    print(command_string)
+    return eval(command_string) # This is a terrible idea
+
+
 name_retained = False
 name_retention_timeout = 60 # seconds til she forgets you're talking to her
 def reset_name_retained():
@@ -32,19 +50,31 @@ def read_stdout(fd,tts=False):
     global history
     lines = []
     for line in iter(fd.readline,b""):
-        line = line.decode()
+        line = line.decode().lstrip()
         lines.append(line)
         if line == "\n": continue
-        history.append("AI] "+line)
-        print(line)
+        history.append(HISTORY_PROMPT_PREFIX+" "+line)
         fd.flush()
-    #if len(lines) > 5: return
+        print(line)
+        
+        if line.startswith(UTIL_EXTENSION_PREFIX):
+            argv = line[5:].split(" ")
+            func = argv[0]
+            args = ",".join(["'"+arg.replace('"','')+"'" for arg in argv[1:]]).replace('\n','')
+            print(f"[EXT] Running: {func}({args})")
+            ext_out = run_extension(func,args)
+            print(ext_out)
+            lines.append([l for l in ext_out.split("\n")])
+
+
+
+    #if len(lines) > 5: return # disable speech on large outputs
     if not tts: return
     [say(line) for line in lines]
 
 global_prompt = ""
 def main(voice_control,use_tts=False):
-    print("== Myra .1 ==\n(Give command or 'exit')\n")
+    print("== Myra .2 ==\n(Give command or 'exit')\n")
 
     global name_retained
 
