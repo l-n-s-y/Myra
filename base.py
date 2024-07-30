@@ -62,7 +62,7 @@ def read_stdout(fd,tts=False):
             func = argv[0]
             args = ",".join(["'"+arg.replace('"','')+"'" for arg in argv[1:]]).replace('\n','')
             print(f"[EXT] Running: {func}({args})")
-            ext_out = run_extension(func,args)
+            ext_out = str(run_extension(func,args))
             print(ext_out)
             lines.append([l for l in ext_out.split("\n")])
 
