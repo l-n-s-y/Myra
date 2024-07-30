@@ -6,9 +6,9 @@ def read_file(f): return open(f,"r").read()
 
 # TRAINING WHEELS
 out_dir = "testing_output\\"
-def write_file(f,d): 
+def write_file(f,*d): 
     print(f,d)
-    return open(out_dir+f,"w").write(d)
+    return open(out_dir+f,"w").write(" ".join(d))
 
 
 
